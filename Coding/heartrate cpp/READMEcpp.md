@@ -1,0 +1,1 @@
+This is the c++ code for calculating heartrate in real time if made into a tool in Device Studio 5. I do not know how to do that, nor do I have the expertise. I believe there are no bugs, but if there are some please let me know.
