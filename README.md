@@ -86,3 +86,5 @@ References
 [2] P. R. E. Harris, “The normal electrocardiogram: Resting 12-lead and electrocardiogram monitoring in the hospital,” Science Direct, https://www.sciencedirect.com/science/article/pii/S0899588516300284?via%3Dihub (accessed Sep. 27, 2023).
 
 [3] P. Van Gent, “Welcome to HeartPy,” Python Heart Rate Analysis Toolkit, https://python-heart-rate-analysis-toolkit.readthedocs.io/en/latest/ (accessed Sep. 27, 2023).
+
+If any other references were missed here, they are referenced in the code or in the folders for the code.
