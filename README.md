@@ -71,13 +71,11 @@ Create plots of data using Matplotlib in Jupyter Notebook to be able to visualiz
 
 C++ (All coding done in Mbed Studio)
 
-Write a function to take in the real time data and organize the relevant data into a vector.
+Write a function to take in the real time PPG IR data and organize the relevant data into a vector.
 
-Do calculations on figures of merit using the data provided.
+Do calculations on figures of merit using the data provided, and code for correct output.
 
-Burn code into the Arduino on the Evaluation Kit.
-
-Print to screen the figures of merit with little delay when collecting data.
+Theoretically, should then be able to make into a tool in the Maxim DeviceStudio
 
 References
 
