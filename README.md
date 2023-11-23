@@ -37,9 +37,11 @@ Software:
 
 Maxim DeviceStudio: collection of data and exporting to .csv file for analysis
 
-Visual Studio Code (VSCode): C++, Python
+Visual Studio Code (VSCode): Python
 
-Jupyter Notebook: Python analysis
+Jupyter Notebook: Python
+
+Mbed Studio: C++
 
 **Data and Resource Overview**
 
@@ -47,7 +49,7 @@ The primary source of the data used  will be the primary investigators themselve
 
 **Expected Results**
 
-The end goal of this project, and, therefore, what is expected to be the final result, is the creation of a handheld, pocket-size PPG and ECG monitor that can be used outside of the hospital by patients unfamiliar with the software in order to diagnose health issues. Additionally, a simple GUI using C++, as well as an analytical Python code should be developed.
+The end goal of this project, and, therefore, what is expected to be the final result, is the creation of a handheld, pocket-size PPG and ECG monitor that can be used outside of the hospital by patients unfamiliar with the software in order to diagnose health issues. Additionally, a simple code for a tool using C++, as well as an analytical Python code should be developed.
 
 **Flow Chart**
 
@@ -67,9 +69,9 @@ Glean information from statistical analysis (such as frequency, blood pressure, 
 
 Create plots of data using Matplotlib in Jupyter Notebook to be able to visualize PPG and ECG data.
 
-C++ (All coding done in VSCode)
+C++ (All coding done in Mbed Studio)
 
-Write a function to take in the .csv file and organize the data into a dataframe.
+Write a function to take in the real time data and organize the relevant data into a vector.
 
 Do calculations on figures of merit using the data provided.
 
