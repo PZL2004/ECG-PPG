@@ -74,11 +74,8 @@ int main()
     
     /*
     Vector of PPG Data. Involves reading in of data in real time.
-    Theoretically uses the same method the tool uses to plot the data in real time. Don't know
-    where to even start. I assume copy-pasting relevant code from the tool provided for the MAX32630FTHR
-    could be done. - PZL
+    Theoretically uses the same method the tool uses to plot the data in real time. - PZL
     */
-    
     std::vector<double> vec;
 
     while (true) {
