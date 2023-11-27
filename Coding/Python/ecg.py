@@ -1,6 +1,6 @@
 import numpy as np
 import pandas as pd
-# import heartpy as hp
+import heartpy as hp
 import matplotlib.pyplot as plt
 from scipy import signal
 import sys
@@ -50,7 +50,9 @@ c = 100
 # df.head
 
 # CSV 5
-df = pd.read_csv("C:\data\honors project ppg data\ECPPG_2023-11-10_13-32-13.csv") #Karston
+#df = pd.read_csv("C:\data\honors project ppg data\ECPPG_2023-11-10_13-32-13.csv") #Karston
+df = pd.read_csv("/home/pablo/projects/ECG-PPG/Coding/data/ECPPG_2023-11-10_13-32-13.csv") # Pablo - Linux
+
 # print(df.head)
 
 
