@@ -9,7 +9,8 @@ from datetime import datetime
 # Sample Rate (Hz)=100,Pulse Width (usec)=400,ADC Range (nA)=32768,FIFO Rolls on Full=Checked,FIFO Almost Full=17,Sample 
 # Averaging=1,IA Gain=5,ECG Gain=8,Sample Rate=200,Adaptive Filter=Checked,Notch Freq=60,Cutoff Freq=50,
 
-### Peak Finding Parameters ###
+##### INITIAL PARAMETERS #####
+### Peak Finding ###
 MIN_WIDTH = 20
 MAX_WIDTH = 500
 MIN_WIDTH_ECG_VAL = 0
@@ -35,6 +36,8 @@ c = 100 # goofy values from Maxim
 compute_moving_average = 0
 plot = 0
 important_plot = 1
+
+##### FUNCTIONS #####
 
 def convert_to_sec(t):
     timelist_ms = np.array(t - t[0], dtype=float)
@@ -421,6 +424,8 @@ def signaltonoise(a, axis=0, ddof=0):
     sd = a.std(axis=axis, ddof=ddof)
     return 20*np.log10(abs(np.where(sd == 0, 0, m/sd)))
 
+##### MAIN PROGRAM #####
+
 # df = pd.read_csv("/home/pablo/projects/ECG-PPG/Coding/data/ECPPG_2023-11-10_13-32-13.csv") #Pablo
 df = pd.read_csv("C:\data\honors project ppg data\ECPPG_2023-11-10_13-32-13.csv") #Karston
 
@@ -442,6 +447,8 @@ ecg_avg_bpm_2, ecg_stdev_bpm_2, ecg_avg_bpm, ecg_stdev_bpm, ecg_diffs = ecg_hear
 
 ptt_array = pulse_transit_time(ecg_peak_loc,midpoints_ir_smoothed)
 avg_ptt = np.mean(ptt_array)
+
+##### RESULTS #####
 
 ### USING THE IR COUNT ###
 BPM1_vals_ir = BPM1(time, peaks_ir, valleys_ir, compute_moving_average)
