@@ -358,7 +358,14 @@ def ecg_heartrate(ecg_peak_loc,ecg_val_loc,SAMPLERATE_ECG):
 
     return ecg_avg_bpm_2, ecg_stdev_bpm_2, ecg_avg_bpm, ecg_stdev_bpm, ecg_diffs
 
-df = pd.read_csv("/home/pablo/projects/ECG-PPG/Coding/data/ECPPG_2023-11-10_13-32-13.csv")
+def signaltonoise(a, axis=0, ddof=0):
+    a = np.asanyarray(a)
+    m = a.mean(axis)
+    sd = a.std(axis=axis, ddof=ddof)
+    return 20*np.log10(abs(np.where(sd == 0, 0, m/sd)))
+
+# df = pd.read_csv("/home/pablo/projects/ECG-PPG/Coding/data/ECPPG_2023-11-10_13-32-13.csv") #Pablo
+df = pd.read_csv("C:\data\honors project ppg data\ECPPG_2023-11-10_13-32-13.csv") #Karston
 
 time, samplecount, IR_Count, Red_Count, ecg_raw, ecg_raw_mv, ecg_filtered, ecg_filtered_mv = read_file(df,100)
 smoothed_IR = smooth_data(IR_Count, 'IR')
@@ -470,3 +477,11 @@ print(f'Average ECG BPM: {ecg_avg_bpm}')
 print(f'Average ECG BPM2: {ecg_avg_bpm_2}')
 #print(f'ECG BPM2 stdev: {ecg_stdev_bpm_2}')
 
+FOM_ecg_filtered = signaltonoise(ecg_filtered, axis = 0, ddof = 0)
+FOM_ppg_ir = signaltonoise(IR_Count, axis = 0, ddof = 0)
+FOM_ppg_red = signaltonoise(Red_Count, axis = 0, ddof = 0)
+if FOM_ecg_filtered <= 6 or FOM_ecg_filtered >= 24: #ECG ONLY SINCE I HAVEN'T FOUND GOOD VALUES FOR PPG
+    print(f'Bad reading! Values may not be accurate. By taking another reading and staying still, values may be more accurate.')
+print(f'\nsignal to noise ratio for IR Signal: {FOM_ppg_ir}')
+print(f'signal to noise ratio for Red Signal: {FOM_ppg_red}')
+print(f'signal to noise ratio for ECG Signal: {FOM_ecg_filtered}')
