@@ -424,8 +424,8 @@ def signaltonoise(a, axis=0, ddof=0):
 
 ##### MAIN PROGRAM #####
 
-# df = pd.read_csv("/home/pablo/projects/ECG-PPG/Coding/data/ECPPG_2023-11-10_13-32-13.csv") #Pablo
-df = pd.read_csv("C:\data\honors project ppg data\ECPPG_2023-11-10_13-32-13.csv") #Karston
+df = pd.read_csv("/home/pablo/projects/ECG-PPG/Coding/data/ECPPG_2023-11-10_13-32-13.csv") #Pablo
+#df = pd.read_csv("C:\data\honors project ppg data\ECPPG_2023-11-10_13-32-13.csv") #Karston
 
 time, samplecount, IR_Count, Red_Count, ecg_raw, ecg_raw_mv, ecg_filtered, ecg_filtered_mv = read_file(df,100)
 smoothed_IR = smooth_data(IR_Count, 'IR')
@@ -541,7 +541,7 @@ BPM2_vals_smoothed_red = BPM2(time, peaks_red_smoothed, valleys_red_smoothed, co
 bpm_mean = (ecg_avg_bpm_2 + BPM2_vals_smoothed_ir[1])/2
 print('\n------- BPM -------')
 print(f'Average Smoothed IR BPM using valleys: {BPM2_vals_smoothed_ir[1]:.2f}')
-print(f'Average ECG BPM using valleys: {ecg_avg_bpm_2}')
+print(f'Average ECG BPM using valleys: {ecg_avg_bpm_2:.2f}')
 print(f'Average BPM from ECG and IR: {bpm_mean:.2f}')
 
 ### SpO2 ###
