@@ -5,20 +5,24 @@ import matplotlib.pyplot as plt
 from scipy.signal import find_peaks, savgol_filter
 import sys
 from datetime import datetime
+import time
 # Automatic Gain Control=Checked,IR PA (mA)=10,Red PA (mA)=10,IR LED Range (mA)=51,Red LED Range (mA)=51,ALC + FDM=Checked,
 # Sample Rate (Hz)=100,Pulse Width (usec)=400,ADC Range (nA)=32768,FIFO Rolls on Full=Checked,FIFO Almost Full=17,Sample 
 # Averaging=1,IA Gain=5,ECG Gain=8,Sample Rate=200,Adaptive Filter=Checked,Notch Freq=60,Cutoff Freq=50,
 
+#start compute time
+start = time.time()
+
 ##### INITIAL PARAMETERS #####
 ### Peak Finding ###
-MIN_WIDTH = 20
+MIN_WIDTH = 25
 MAX_WIDTH = 500
 MIN_WIDTH_ECG_VAL = 0
 MAX_WIDTH_ECG_VAL = 25
 MIN_WIDTH_ECG_PEAK = 0
 MAX_WIDTH_ECG_PEAK = 50
-PROMINENCE_IR = 1000
-PROMINENCE_RED = 500
+PROMINENCE_IR = 850
+PROMINENCE_RED = 350
 PROMINENCE_ECG = 800
 SAMPLERATE_PPG = 100
 SAMPLERATE_ECG = 200
@@ -43,7 +47,7 @@ def convert_to_sec(t):
     return timelist_s
 
 def read_file(df,drop):
-    time = convert_to_sec(np.array(df['Time'][drop:], dtype='datetime64'))
+    time_ = convert_to_sec(np.array(df['Time'][drop:], dtype='datetime64'))
     samplecount = np.array(df[' Sample Count'][drop:])
     ir_count = np.array(df[' IR Count'][drop:])
     red_count = np.array(df[' Red Count'][drop:])
@@ -52,7 +56,7 @@ def read_file(df,drop):
     ecg_filtered = np.array(df[' Filtered ECG'][drop:])
     ecg_filtered_mv = np.array([' Filtered ECG (mV)'][drop:])
     
-    return time, samplecount, ir_count, red_count, ecg_raw, ecg_raw_mv, ecg_filtered, ecg_filtered_mv
+    return time_, samplecount, ir_count, red_count, ecg_raw, ecg_raw_mv, ecg_filtered, ecg_filtered_mv
 
 def smooth_data(signal, analysis_type):
     """Takes in a dataset and smoothes the data for
@@ -87,14 +91,38 @@ def smooth_data(signal, analysis_type):
 
     return filtered
 
-def peak_valley_finder_and_plot(data, time, prominence, datatype, smoothed):
+def midpoint_finder(peaks, valleys):
+    lcd = min([len(peaks),len(valleys)])
+
+    if valleys[0] < peaks[0]: #if it starts with a valley
+        if len(peaks[1:]) == len(valleys): #good / ending point is a peak
+            midpoints = np.round(np.array(peaks[0:lcd+1])+np.array(valleys[0:lcd+1]))/2
+        elif len(peaks[1:]) < len(valleys): #+1 valley / ending point is a valley
+            midpoints = np.round(np.array(peaks)+np.array(valleys[:len(peaks[1:])+1]))/2
+    elif valleys[0] > peaks[0]: #but if it starts with a peak we need to remove the first peak
+        if len(peaks[1:]) == len(valleys): #good / ending point is a peak
+            midpoints = np.round(np.array(peaks[1:])+np.array(valleys))/2
+        elif len(peaks[1:]) < len(valleys): #+1 valley / ending point is a valley
+            midpoints = np.round(np.array(peaks[1:])+np.array(valleys[:len(peaks[1:])]))/2
+        else:
+            print('what?')
+
+    # plt.plot(peaks,label='p')
+    # plt.plot(valleys,label='v')
+    # plt.plot(midpoints,label='mp')
+    # plt.legend()
+    # plt.show()
+    return midpoints.astype(int)
+
+def peak_valley_finder_and_plot(data, time_, prominence, datatype, smoothed):
     """finds the peaks of a dataset and plots the data
 
     Args:
         data (list/list-like): the y-axis values of the dataset
-        time (list/list-like): the x-axis time values of the dataset (should be same shape as data) 
+        time_ (list/list-like): the x-axis time values of the dataset (should be same shape as data) 
         prominence (integer): the prominence required to return as a peak or valley in the data
         datatype (string): what dataset is being used
+        smoothed (bool): if smoothed signal or not
 
     Returns:
         list: list containing the indexes of all of the peaks in the dataset (no minimum peaks, just maxes)
@@ -127,40 +155,17 @@ def peak_valley_finder_and_plot(data, time, prominence, datatype, smoothed):
     #plotting
     if important_plot:
         plt.figure(figsize=(12,4))
-        plt.plot(time, data, label = "Signal")
-        plt.plot(time[peaks], data[peaks], "x", label = "peaks")
-        plt.plot(time[valleys], data[valleys], "x", label="valleys")
+        plt.plot(time_, data, label = "Signal")
+        plt.plot(time_[peaks], data[peaks], "x", label = "peaks")
+        plt.plot(time_[valleys], data[valleys], "x", label="valleys")
         if smoothed:
-            plt.plot(time[midpoints], data[midpoints], "x", label="midpoints")
+            plt.plot(time_[midpoints], data[midpoints], "x", label="midpoints")
         plt.xlabel("Time (s)")
         plt.ylabel("Signal Count")
         plt.title(f"{datatype} Count vs Time")
         plt.legend()
         plt.show()
     return peaks, valleys
-
-def midpoint_finder(peaks, valleys):
-    lcd = min([len(peaks),len(valleys)])
-
-    if valleys[0] < peaks[0]: #if it starts with a valley
-        if len(peaks[1:]) == len(valleys): #good / ending point is a peak
-            midpoints = np.round(np.array(peaks[0:lcd+1])+np.array(valleys[0:lcd+1]))/2
-        elif len(peaks[1:]) < len(valleys): #+1 valley / ending point is a valley
-            midpoints = np.round(np.array(peaks)+np.array(valleys[:len(peaks[1:])+1]))/2
-    elif valleys[0] > peaks[0]: #but if it starts with a peak we need to remove the first peak
-        if len(peaks[1:]) == len(valleys): #good / ending point is a peak
-            midpoints = np.round(np.array(peaks[1:])+np.array(valleys))/2
-        elif len(peaks[1:]) < len(valleys): #+1 valley / ending point is a valley
-            midpoints = np.round(np.array(peaks[1:])+np.array(valleys[:len(peaks[1:])]))/2
-        else:
-            print('what?')
-
-    # plt.plot(peaks,label='p')
-    # plt.plot(valleys,label='v')
-    # plt.plot(midpoints,label='mp')
-    # plt.legend()
-    # plt.show()
-    return midpoints.astype(int)
 
 def SpO2(red_count, ir_count, red_peak_loc, red_val_loc, ir_peak_loc, ir_val_loc):
     """This function finds the average ratio of ratios and the average SpO2.
@@ -199,46 +204,46 @@ def SpO2(red_count, ir_count, red_peak_loc, red_val_loc, ir_peak_loc, ir_val_loc
     
     return avg_red_peak, avg_red_val, avg_ir_peak, avg_ir_val, avg_R, avg_SpO2
 
-def BPM1(time, peak_locations, valley_locations, compute_moving_average):
+def BPM1(time_, peak_locations, valley_locations, compute_moving_average):
     """calculates the BPM for both the peaks and the valleys of the data in question.
 
     Args:
-        time (ndarray): an array of time in seconds for each point in the data in question
+        time_ (ndarray): an array of time in seconds for each point in the data in question
         peak_locations (list/list-like): a list of the peak locations (indices) for the data in question
         valley_locations (list/list-like): a list of the peak locations (indices) for the data in question
 
     Returns:
         tuple: contains the average bpm for the peaks and valleys, as well as a moving average for both
     """
-    peak_times = list(set(np.round(time[peak_locations], 3)))
+    peak_times = list(set(np.round(time_[peak_locations], 3)))
 
-    valley_times = list(set(np.round(time[valley_locations], 3)))
+    valley_times = list(set(np.round(time_[valley_locations], 3)))
 
     diffs_peaks = np.diff(peak_times)
     diffs_valleys = np.diff(valley_times)
 
     #average over the whole timeframe
-    avg_bpm_peaks = 60*(1/np.mean(diffs_peaks))
-    avg_bpm_valleys = 60*(1/np.mean(diffs_valleys))
+    avg_bpm_peaks = 60/np.mean(diffs_peaks)
+    avg_bpm_valleys = 60/np.mean(diffs_valleys)
 
     #moving average every 5 heartbeats
     if compute_moving_average:
         try:
-            bpms_peaks = [60*(1/np.mean(diffs_peaks[i:i+5])) for i in range(len(diffs_peaks) - 5)]
-            bpms_valleys = [60*(1/np.mean(diffs_valleys[i:i+5])) for i in range(len(diffs_valleys) - 5)]
+            bpms_peaks = [(60/np.mean(diffs_peaks[i:i+5])) for i in range(len(diffs_peaks) - 5)]
+            bpms_valleys = [(60/np.mean(diffs_valleys[i:i+5])) for i in range(len(diffs_valleys) - 5)]
         except IndexError:
             sys.exit("Use more than 5 heartbeats for your data. Preferably way more!")
     
         return avg_bpm_peaks, avg_bpm_valleys, bpms_peaks, bpms_valleys
     return avg_bpm_peaks, avg_bpm_valleys
 
-def BPM2(time, peak_positions, trough_positions, compute_moving_average):
+def BPM2(time_, peak_positions, trough_positions, compute_moving_average):
     """calculates the BPM for the data points in which a single peak in in between
     two troughs. If there is not 1 peak in between, the data is thrown out for
     the heartrate calculation.
 
     Args:
-        time (ndarray): an array of time in seconds for each point in the data in question
+        time_ (ndarray): an array of time in seconds for each point in the data in question
         peak_locations (list/list-like): a list of the peak locations (indices) for the data in question
         valley_locations (list/list-like): a list of the peak locations (indices) for the data in question
 
@@ -267,23 +272,23 @@ def BPM2(time, peak_positions, trough_positions, compute_moving_average):
     valid_troughs = np.array(sorted(list(set(valid_troughs))))
     cut_indexes = np.array(cut_indexes)
     
-    peak_times = list(set(np.round(time[valid_peaks], 3)))
+    peak_times = list(set(np.round(time_[valid_peaks], 3)))
 
-    valley_times = list(set(np.round(time[valid_troughs], 3)))
+    valley_times = list(set(np.round(time_[valid_troughs], 3)))
     
     diffs_peaks = np.diff(peak_times)
     diffs_valleys = np.diff(valley_times)
 
     #average over the whole timeframe
-    avg_bpm_peaks = 60*(1/np.mean(diffs_peaks))
-    avg_bpm_valleys = 60*(1/np.mean(diffs_valleys))
+    avg_bpm_peaks = 60/np.mean(diffs_peaks)
+    avg_bpm_valleys = 60/np.mean(diffs_valleys)
 
     #moving average every 5 heartbeats
     
     if compute_moving_average:
         try:
-            bpms_peaks = [60*(1/np.mean(diffs_peaks[i:i+5])) for i in range(len(diffs_peaks) - 5)]
-            bpms_valleys = [60*(1/np.mean(diffs_valleys[i:i+5])) for i in range(len(diffs_valleys) - 5)]
+            bpms_peaks = [(60/np.mean(diffs_peaks[i:i+5])) for i in range(len(diffs_peaks) - 5)]
+            bpms_valleys = [(60/np.mean(diffs_valleys[i:i+5])) for i in range(len(diffs_valleys) - 5)]
         except IndexError:
             sys.exit("Use more than 5 heartbeats for your data. Preferably way more!")
     
@@ -316,7 +321,7 @@ def ecg_peak_removal(ecg_peak_loc, ecg_val_loc):
     # print(ir_val_loc)
     return np.array(cut_indices)
 
-def ecg_peak_finder(ecgdata, time):
+def ecg_peak_finder(ecgdata, time_):
     """
 
     Parameters
@@ -343,9 +348,9 @@ def ecg_peak_finder(ecgdata, time):
     # Plot ECG Signal
     fig1, (ax1) = plt.subplots(1)
     fig1.tight_layout(pad=3)
-    ax1.plot(time,ecgdata,'-',ms=5,label='ECG Signal')
-    ax1.plot(time[ecg_peak_loc],ecgdata[ecg_peak_loc],'.',ms=10,label='ECG Peaks') #x,y = index, y-value at index, do the same w trough
-    ax1.plot(time[ecg_val_loc],ecgdata[ecg_val_loc],'.',ms=10,label='ECG Valleys')
+    ax1.plot(time_,ecgdata,'-',ms=5,label='ECG Signal')
+    ax1.plot(time_[ecg_peak_loc],ecgdata[ecg_peak_loc],'.',ms=10,label='ECG Peaks') #x,y = index, y-value at index, do the same w trough
+    ax1.plot(time_[ecg_val_loc],ecgdata[ecg_val_loc],'.',ms=10,label='ECG Valleys')
     
     # Plot where bad data is cut
     cut_indices = np.asfarray(ecg_peak_removal(ecg_peak_loc,ecg_val_loc))
@@ -355,7 +360,7 @@ def ecg_peak_finder(ecgdata, time):
         for i in cut_indices:
             xvals += [ecg_val_loc[int(i)]]
             yvals += [ecg_filtered[ecg_val_loc[int(i)]]]
-        ax1.plot(time[xvals],yvals,'x',ms=10,label='Cut Valleys',color='red')
+        ax1.plot(time_[xvals],yvals,'x',ms=10,label='Cut Valleys',color='red')
     
     #Pretty graph
     ax1.legend(loc='upper right')
@@ -403,16 +408,16 @@ def pulse_transit_time(ecg_peak_loc,midpoints_ir_smoothed):
         ecg_peak_loc = np.delete(ecg_peak_loc,0)
 
     # PLOT OF MIDPOINT VS ECG PEAK LOCATIONS IN SECONDS
-    # plt.plot(time[ecg_peak_loc],np.ones(len(time[ecg_peak_loc])),'o',label='ecg (first)')
-    # plt.plot(time[midpoints_ir_smoothed],np.ones(len(time[midpoints_ir_smoothed])),'o',label='ir mp (second)')
+    # plt.plot(time_[ecg_peak_loc],np.ones(len(time_[ecg_peak_loc])),'o',label='ecg (first)')
+    # plt.plot(time_[midpoints_ir_smoothed],np.ones(len(time_[midpoints_ir_smoothed])),'o',label='ir mp (second)')
     # plt.legend()
     # plt.show()
 
-    lcd = min(len(time[midpoints_ir_smoothed]), len(time[ecg_peak_loc]))
-    if time[ecg_peak_loc][0] < time[midpoints_ir_smoothed][0]:
-        ptt = time[midpoints_ir_smoothed][:lcd] - time[ecg_peak_loc][:lcd+1]
+    lcd = min(len(time_[midpoints_ir_smoothed]), len(time_[ecg_peak_loc]))
+    if time_[ecg_peak_loc][0] < time_[midpoints_ir_smoothed][0]:
+        ptt = time_[midpoints_ir_smoothed][:lcd] - time_[ecg_peak_loc][:lcd+1]
     else:
-        ptt = time[midpoints_ir_smoothed][1:lcd+1] - time[ecg_peak_loc][:lcd+1]
+        ptt = time_[midpoints_ir_smoothed][1:lcd+1] - time_[ecg_peak_loc][:lcd+1]
     # ptt_s = ptt/samplerate #convert to seconds
     return ptt
 
@@ -424,33 +429,34 @@ def signaltonoise(a, axis=0, ddof=0):
 
 ##### MAIN PROGRAM #####
 
-df = pd.read_csv("/home/pablo/projects/ECG-PPG/Coding/data/ECPPG_2023-11-10_13-32-13.csv") #Pablo
-#df = pd.read_csv("C:\data\honors project ppg data\ECPPG_2023-11-10_13-32-13.csv") #Karston
+#df = pd.read_csv("/home/pablo/projects/ECG-PPG/Coding/data/ECPPG_2023-11-10_13-32-13.csv") # Pablo - Linux
+df = pd.read_csv("C:\\Users\pazul\Documents\BMEN 207\Honors Project\ECG-PPG\Coding\data\ECPPG_2023-11-10_13-32-13.csv") # Pablo - Windows
+#df = pd.read_csv("C:\data\honors project ppg data\ECPPG_2023-11-10_13-32-13.csv") # Karston
 
-time, samplecount, IR_Count, Red_Count, ecg_raw, ecg_raw_mv, ecg_filtered, ecg_filtered_mv = read_file(df,100)
+time_, samplecount, IR_Count, Red_Count, ecg_raw, ecg_raw_mv, ecg_filtered, ecg_filtered_mv = read_file(df,100)
 smoothed_IR = smooth_data(IR_Count, 'IR')
 smoothed_Red = smooth_data(Red_Count, 'Red')
 
-peaks_ir, valleys_ir = peak_valley_finder_and_plot(IR_Count, time, PROMINENCE_IR, "IR",False)
-peaks_red, valleys_red = peak_valley_finder_and_plot(Red_Count, time, PROMINENCE_RED, "Red",False)
+peaks_ir, valleys_ir = peak_valley_finder_and_plot(IR_Count, time_, PROMINENCE_IR, "IR",False)
+peaks_red, valleys_red = peak_valley_finder_and_plot(Red_Count, time_, PROMINENCE_RED, "Red",False)
 
-peaks_ir_smoothed, valleys_ir_smoothed = peak_valley_finder_and_plot(smoothed_IR, time, 500, "Smoothed IR", smoothed=True)
-peaks_red_smoothed, valleys_red_smoothed = peak_valley_finder_and_plot(smoothed_Red, time, 200, "Smoothed Red", smoothed=True)
+peaks_ir_smoothed, valleys_ir_smoothed = peak_valley_finder_and_plot(smoothed_IR, time_, 500, "Smoothed IR", smoothed=True)
+peaks_red_smoothed, valleys_red_smoothed = peak_valley_finder_and_plot(smoothed_Red, time_, 200, "Smoothed Red", smoothed=True)
 
 midpoints_ir_smoothed = midpoint_finder(peaks_ir_smoothed, valleys_ir_smoothed)
 midpoints_red_smoothed = midpoint_finder(peaks_red_smoothed, valleys_red_smoothed)
 
-ecg_peak_loc, ecg_val_loc = ecg_peak_finder(ecg_filtered, time)
+ecg_peak_loc, ecg_val_loc = ecg_peak_finder(ecg_filtered, time_)
 ecg_avg_bpm_2, ecg_stdev_bpm_2, ecg_avg_bpm, ecg_stdev_bpm, ecg_diffs = ecg_heartrate(ecg_peak_loc,ecg_val_loc,SAMPLERATE_ECG)
 
-ptt_array = pulse_transit_time(ecg_peak_loc,midpoints_ir_smoothed)
+ptt_array = pulse_transit_time(ecg_peak_loc, midpoints_ir_smoothed)
 avg_ptt = np.mean(ptt_array)
 
 ##### RESULTS #####
 
 ### USING THE IR COUNT ###
-BPM1_vals_ir = BPM1(time, peaks_ir, valleys_ir, compute_moving_average)
-BPM2_vals_ir = BPM2(time, peaks_ir, valleys_ir, compute_moving_average)
+BPM1_vals_ir = BPM1(time_, peaks_ir, valleys_ir, compute_moving_average)
+BPM2_vals_ir = BPM2(time_, peaks_ir, valleys_ir, compute_moving_average)
     
 # print("------- Based on IR Count -------")
 # print(f'Average BPM over time interval using peaks: {BPM1_vals_ir[0]:.2f}')
@@ -469,8 +475,8 @@ BPM2_vals_ir = BPM2(time, peaks_ir, valleys_ir, compute_moving_average)
 #     print("Based on valleys: ", np.round(BPM2_vals_ir[3], 2))
 
 ### USING THE SMOOTHED IR COUNT ###
-BPM1_vals_smoothed_ir = BPM1(time, peaks_ir_smoothed, valleys_ir_smoothed, compute_moving_average)
-BPM2_vals_smoothed_ir = BPM2(time, peaks_ir_smoothed, valleys_ir_smoothed, compute_moving_average)
+BPM1_vals_smoothed_ir = BPM1(time_, peaks_ir_smoothed, valleys_ir_smoothed, compute_moving_average)
+BPM2_vals_smoothed_ir = BPM2(time_, peaks_ir_smoothed, valleys_ir_smoothed, compute_moving_average)
 
 # print("\n------- Based on Smoothed IR Count -------")
 # print(f'Average BPM over time interval using peaks: {BPM1_vals_smoothed_ir[0]:.2f}')
@@ -489,8 +495,8 @@ BPM2_vals_smoothed_ir = BPM2(time, peaks_ir_smoothed, valleys_ir_smoothed, compu
 #     print("Based on valleys: ", np.round(BPM2_vals_smoothed_ir[3], 2))
 
 ### USING THE RED COUNT ###
-BPM1_vals_red = BPM1(time, peaks_red, valleys_red, compute_moving_average)
-BPM2_vals_red = BPM2(time, peaks_red, valleys_red, compute_moving_average)
+BPM1_vals_red = BPM1(time_, peaks_red, valleys_red, compute_moving_average)
+BPM2_vals_red = BPM2(time_, peaks_red, valleys_red, compute_moving_average)
 
 # print("\n------- Based on Red Count -------")
 # print(f'Average BPM over time interval using peaks: {BPM1_vals_red[0]:.2f}')
@@ -509,8 +515,8 @@ BPM2_vals_red = BPM2(time, peaks_red, valleys_red, compute_moving_average)
 #     print("Based on valleys: ", np.round(BPM2_vals_red[3], 2))
 
 ### USING THE SMOOTHED RED COUNT ###
-BPM1_vals_smoothed_red = BPM1(time, peaks_red_smoothed, valleys_red_smoothed, compute_moving_average)
-BPM2_vals_smoothed_red = BPM2(time, peaks_red_smoothed, valleys_red_smoothed, compute_moving_average)
+BPM1_vals_smoothed_red = BPM1(time_, peaks_red_smoothed, valleys_red_smoothed, compute_moving_average)
+BPM2_vals_smoothed_red = BPM2(time_, peaks_red_smoothed, valleys_red_smoothed, compute_moving_average)
 
 # print("\n------- Based on Smoothed Red Count -------")
 # print(f'Average BPM over time interval using peaks: {BPM1_vals_smoothed_red[0]:.2f}')
@@ -570,3 +576,7 @@ if FOM_ecg_filtered <= 6 or FOM_ecg_filtered >= 24: #ECG ONLY SINCE I HAVEN'T FO
 print(f'Signal to noise ratio for IR Signal: {FOM_ppg_ir:.2f}')
 print(f'Signal to noise ratio for Red Signal: {FOM_ppg_red:.2f}')
 print(f'Signal to noise ratio for ECG Signal: {FOM_ecg_filtered:.2f}')
+
+# end of computation
+end = time.time()
+print(f"Compute Time: {end-start} seconds")
