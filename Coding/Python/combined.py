@@ -15,12 +15,12 @@ start = time.time()
 
 ##### INITIAL PARAMETERS #####
 ### Peak Finding ###
-MIN_WIDTH = 25
-MAX_WIDTH = 500
-MIN_WIDTH_ECG_VAL = 0
-MAX_WIDTH_ECG_VAL = 25
-MIN_WIDTH_ECG_PEAK = 0
-MAX_WIDTH_ECG_PEAK = 50
+MIN_WIDTH = 25 # PPG -- 100 Hz = 0.25 seconds per beat = 240 bpm max
+MAX_WIDTH = 300 # PPG -- 100 Hz = 3 seconds per beat = 20 bpm minimum
+MIN_WIDTH_ECG_VAL = 0 # 200 Hz = 0 seconds per beat = theoretically inf max
+MAX_WIDTH_ECG_VAL = 25 # 200 Hz = 0.25 seconds per beat = 240 bpm max
+MIN_WIDTH_ECG_PEAK = 0 # 200 Hz = 0 seconds per beat = theoretically inf max
+MAX_WIDTH_ECG_PEAK = 50 # 200 Hz = 0.25 seconds per beat = 240 bpm max
 PROMINENCE_IR = 850
 PROMINENCE_RED = 350
 PROMINENCE_ECG = 800
@@ -452,7 +452,7 @@ ecg_avg_bpm_2, ecg_stdev_bpm_2, ecg_avg_bpm, ecg_stdev_bpm, ecg_diffs = ecg_hear
 ptt_array = pulse_transit_time(ecg_peak_loc, midpoints_ir_smoothed)
 avg_ptt = np.mean(ptt_array)
 
-##### RESULTS #####
+##### RESULTS ##### (CODE DIAGNOSTIC OUTPUTS COMMENTED OUT)
 
 ### USING THE IR COUNT ###
 BPM1_vals_ir = BPM1(time_, peaks_ir, valleys_ir, compute_moving_average)
