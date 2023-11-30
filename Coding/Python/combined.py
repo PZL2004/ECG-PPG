@@ -24,8 +24,6 @@ SAMPLERATE_PPG = 100
 SAMPLERATE_ECG = 200
 HEIGHT = None
 THRESHOLD = None
-HEIGHT = None
-THRESHOLD = None
 
 ### SpO2 Parameters ###
 a = -16.666666 # SpO2 = aR^2 + bR + c
