@@ -15,12 +15,12 @@ start = time.time()
 
 ##### INITIAL PARAMETERS #####
 ### Peak Finding ###
-MIN_WIDTH = 25 # PPG -- 100 Hz = 0.25 seconds per beat = 240 bpm max
-MAX_WIDTH = 300 # PPG -- 100 Hz = 3 seconds per beat = 20 bpm minimum
-MIN_WIDTH_ECG_VAL = 0 # 200 Hz = 0 seconds per beat = theoretically inf max
-MAX_WIDTH_ECG_VAL = 25 # 200 Hz = 0.25 seconds per beat = 240 bpm max
-MIN_WIDTH_ECG_PEAK = 0 # 200 Hz = 0 seconds per beat = theoretically inf max
-MAX_WIDTH_ECG_PEAK = 50 # 200 Hz = 0.25 seconds per beat = 240 bpm max
+MIN_WIDTH = 25
+MAX_WIDTH = 500
+MIN_WIDTH_ECG_VAL = 0
+MAX_WIDTH_ECG_VAL = 25
+MIN_WIDTH_ECG_PEAK = 0
+MAX_WIDTH_ECG_PEAK = 50
 PROMINENCE_IR = 850
 PROMINENCE_RED = 350
 PROMINENCE_ECG = 800
@@ -346,28 +346,29 @@ def ecg_peak_finder(ecgdata, time_):
     ecg_val_loc, _ = find_peaks(-ecgdata,HEIGHT,THRESHOLD,prominence=PROMINENCE_ECG,width=(MIN_WIDTH_ECG_VAL, MAX_WIDTH_ECG_VAL))
     
     # Plot ECG Signal
-    fig1, (ax1) = plt.subplots(1)
-    fig1.tight_layout(pad=3)
-    ax1.plot(time_,ecgdata,'-',ms=5,label='ECG Signal')
-    ax1.plot(time_[ecg_peak_loc],ecgdata[ecg_peak_loc],'.',ms=10,label='ECG Peaks') #x,y = index, y-value at index, do the same w trough
-    ax1.plot(time_[ecg_val_loc],ecgdata[ecg_val_loc],'.',ms=10,label='ECG Valleys')
-    
-    # Plot where bad data is cut
-    cut_indices = np.asfarray(ecg_peak_removal(ecg_peak_loc,ecg_val_loc))
-    if len(cut_indices) > 0:
-        xvals = []
-        yvals = []
-        for i in cut_indices:
-            xvals += [ecg_val_loc[int(i)]]
-            yvals += [ecg_filtered[ecg_val_loc[int(i)]]]
-        ax1.plot(time_[xvals],yvals,'x',ms=10,label='Cut Valleys',color='red')
-    
-    #Pretty graph
-    ax1.legend(loc='upper right')
-    ax1.title.set_text(f'ECG count')
-    ax1.set_xlabel(f'Time (s)')
-    ax1.set_ylabel('ECG')
-    plt.show()
+    if important_plot:
+        fig1, (ax1) = plt.subplots(1)
+        fig1.tight_layout(pad=3)
+        ax1.plot(time_,ecgdata,'-',ms=5,label='ECG Signal')
+        ax1.plot(time_[ecg_peak_loc],ecgdata[ecg_peak_loc],'.',ms=10,label='ECG Peaks') #x,y = index, y-value at index, do the same w trough
+        ax1.plot(time_[ecg_val_loc],ecgdata[ecg_val_loc],'.',ms=10,label='ECG Valleys')
+        
+        # Plot where bad data is cut
+        cut_indices = np.asfarray(ecg_peak_removal(ecg_peak_loc,ecg_val_loc))
+        if len(cut_indices) > 0:
+            xvals = []
+            yvals = []
+            for i in cut_indices:
+                xvals += [ecg_val_loc[int(i)]]
+                yvals += [ecg_filtered[ecg_val_loc[int(i)]]]
+            ax1.plot(time_[xvals],yvals,'x',ms=10,label='Cut Valleys',color='red')
+        
+        #Pretty graph
+        ax1.legend(loc='upper right')
+        ax1.set_title('ECG count')
+        ax1.set_xlabel('Time (s)')
+        ax1.set_ylabel('ECG')
+        plt.show()
     
     return ecg_peak_loc, ecg_val_loc
 
@@ -417,7 +418,7 @@ def pulse_transit_time(ecg_peak_loc,midpoints_ir_smoothed):
     if time_[ecg_peak_loc][0] < time_[midpoints_ir_smoothed][0]:
         ptt = time_[midpoints_ir_smoothed][:lcd] - time_[ecg_peak_loc][:lcd+1]
     else:
-        ptt = time_[midpoints_ir_smoothed][1:lcd+1] - time_[ecg_peak_loc][:lcd+1]
+        ptt = time_[midpoints_ir_smoothed][1:lcd] - time_[ecg_peak_loc][:lcd+1]
     # ptt_s = ptt/samplerate #convert to seconds
     return ptt
 
@@ -558,12 +559,12 @@ print(f"Average Peak Value for IR Channel: {avg_ir_peak:.2f} [counts]")
 print(f"Average Trough Value for Red Channel: {avg_red_val:.2f} [counts]")
 print(f"Average Trough Value for IR Channel: {avg_ir_val:.2f} [counts]")
 print(f"Average Ratio of Ratios: {avg_R:.2f}")
-print(f"Average SpO2: {avg_SpO2:.2f}%")
+print(f"Average SpO2: {avg_SpO2:.2f}%") # probably >100% for us because we are young, older people would get a normal SpO2 percentage
 
 ### PULSE TRANSIT TIME ### 
 print("\n------- Pulse Transit Time -------")
 # print(f'Full: {ptt_array}')
-print(f'Average Pulse Transit Time: {avg_ptt:.2f}')
+print(f'Average Pulse Transit Time: {avg_ptt:.2f} seconds')
 
 ### FIGURES OF MERIT ### 
 FOM_ecg_filtered = signaltonoise(ecg_filtered, axis = 0, ddof = 0)
