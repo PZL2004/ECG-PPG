@@ -1,8 +1,10 @@
-#include "mbed.h"
+#include "mbed.h" //get mbed.h from an example project in Mbed Studio
 #include <cstdio>
 #include <iostream>
 #include <vector>
 #include <ctime>
+#include <algorithm>
+#include <cmath>
 
 /*
 This would probably not run properly if flashed onto the board in this state.
