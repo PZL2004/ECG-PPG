@@ -2,7 +2,7 @@ import numpy as np
 import heartpy as hp
 import pandas as pd
 import matplotlib.pyplot as plt
-from scipy.signal import find_peaks, savgol_filter
+from scipy.signal import find_peaks
 import sys
 from datetime import datetime
 import time
