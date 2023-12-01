@@ -1,43 +1,21 @@
-#include "mbed.h"
-#include <cstdio>
 #include <iostream>
+#include <fstream>
+#include <sstream>
 #include <vector>
-#include <ctime>
+#include <string>
+#include <numeric>
+#include <chrono>
+#include <iomanip>
+#include <algorithm>
+#include <cmath>
 
-/*
-This would probably not run properly if flashed onto the board in this state.
-Some things would have to be drastically changed. There are some things I understand,
-and others not so much. Tried my best to mimic the format of an actual project that 
-could be flashed onto it no problem.
-
-- Pablo Zurita Lozano
-*/
-BufferedSerial pc(USBTX, USBRX);
-
-int get_time()
-{
-    std::time_t t = std::time(0);
-    return t;
-}
-
-double moving_average(const std::vector<double> &vec)
-{
-    int size = vec.size();
-    int l_size = 300; //moving average lookback
-    double sum = 0;
-    double mAvg = 0;
-
-    for (int i = 0; i <= size - l_size; i++)
-    {
-        sum = 0;
-        
-        for (int j = i; j < i + l_size; j++)
-        {
-            sum += vec[j];
-        }
-        mAvg = sum / l_size;
+float average(std::vector<double> const& v){
+    if(v.empty()){
+        return 0;
     }
-    return mAvg;
+
+    auto const count = static_cast<double>(v.size());
+    return std::reduce(v.begin(), v.end()) / count;
 }
 
 //Peak finder code starts here
@@ -291,37 +269,101 @@ void findPeaks(std::vector<float> x0, std::vector<int>& peakInds, bool includeEn
 	//}
 }
 
-// main() runs in its own thread in the OS
-int main()
-{
-    int init_time = get_time();
-    double time;
-    double peaks_num;
-    double heartrate;
-    char* buffer = new char[18];
-    
-    /*
-    Vector of PPG Data. Involves reading in of data in real time.
-    Theoretically uses the same method the tool uses to plot the data in real time. - PZL
-    */
-    std::vector<double> vec;
+double convertStringToUnixTime(const std::string& dateString) {
+    std::tm tm = {};
+    std::istringstream ss(dateString);
+    ss >> std::get_time(&tm, "%Y-%m-%d %H:%M:%S");
 
-    while (true) {
-        if (pc.readable() > 0) // do not know if this will work? Best guess it will, but idk
-        {
-            int num = pc.read(buffer, 18); //amount of bits in an IR Count value is 18
-            vec.push_back(num);
-            delete[] buffer;
-        }
-        time = get_time() - init_time;
-        std::vector<int> peaks_loc;
-        findPeaks(vec, peaks_loc, false, 1);
-        peaks_num = peaks_loc.size();
+    // Handling milliseconds
+    char dot;
+    double milliseconds = 0.0;
 
-        //This would be an average over the time frame. Would be checking the amount of peaks in the data, then dividing by time elapsed since start.
-        heartrate = 60*(peaks_num / time);
-        printf("%.2f", heartrate);
-        ThisThread::sleep_for(500ms);
+    if (ss >> dot && dot == '.' && ss >> milliseconds) {
+        // Convert milliseconds to seconds
+        milliseconds /= 1000.0;
     }
+
+    auto tp = std::chrono::system_clock::from_time_t(std::mktime(&tm)) + std::chrono::duration<double>(milliseconds);
+    return std::chrono::duration<double>(tp.time_since_epoch()).count();
 }
 
+std::vector<double> find_peak_times(const std::vector<double>& times,
+    const std::vector<int>& peak_indices) {
+    std::vector<double> peak_unix_times;
+
+    // Iterate through peak indices and get corresponding Unix time values
+    for (int index : peak_indices) {
+        peak_unix_times.push_back(times[index]);
+    }
+
+    return peak_unix_times;
+}
+
+int main()
+{
+    std::vector<double> time;
+    std::vector<float> ir;
+
+    std::ifstream inFile("ECPPG_2023-11-10_13-32-13.txt");
+    if (inFile.is_open())
+    {
+        std::string line;
+        bool header = true;
+        while(std::getline(inFile,line))
+        {
+            if (header)
+            {
+                header = false;
+                continue;
+            }
+            std::stringstream ss(line);
+
+            std::string Time, Sample_Count, IR_Count, Red_Count, Raw_ECG, Raw_ECG_mV, Filtered_ECG, Filtered_ECG_mV;
+            std::getline(ss,Time,',');    //std::cout<<"\""<<Time<<"\"";
+            std::getline(ss,Sample_Count,','); //std::cout<<", \""<<Sample_Count<<"\"";
+            std::getline(ss,IR_Count,','); //std::cout<<", \""<<IR_Count<<"\"";
+            std::getline(ss,Red_Count,','); //std::cout<<", \""<<Red_Count<<"\"";
+            std::getline(ss,Raw_ECG,','); //std::cout<<", \""<<Raw_ECG<<"\"";
+            std::getline(ss,Raw_ECG_mV,','); //std::cout<<", \""<<Raw_ECG_mV<<"\"";
+            std::getline(ss,Filtered_ECG,','); //std::cout<<", \""<<Filtered_ECG<<"\"";
+            std::getline(ss,Filtered_ECG_mV,','); //std::cout<<", \""<<Filtered_ECG_mV<<"\"";
+
+            
+            time.push_back(convertStringToUnixTime(Time));
+            ir.push_back(std::stod(IR_Count));
+
+            std::cout << '\n';
+        }
+    }
+
+    std::vector<int> peaks_loc;
+    findPeaks(ir, peaks_loc, false, 1);
+    std::vector<double> peak_times = find_peak_times(time, peaks_loc);
+    std::vector<double> diffs;
+    for (int i = 1; i < peak_times.size(); ++i)
+    {
+        double diff = peak_times[i] - peak_times[i-1];
+        if (diff != 0 && diff >= 0.3)
+        {
+            diffs.push_back(diff);
+            // std::cout << diff << std::endl;
+        }
+    }
+
+    std::vector<double> heartrates;
+    for (int i = 0; i < diffs.size(); ++i)
+    {
+        double heartrate = 60/diffs[i];
+        heartrates.push_back(heartrate);
+    }
+	/*
+    for (int i = 0; i < heartrates.size(); ++i)
+    {
+        std::cout << heartrates[i] << std::endl;
+    }
+	*/
+    double avg_BPM = average(heartrates);
+    std::cout<< "AVG HR: " << avg_BPM << std::endl;
+
+    return 0;
+}
