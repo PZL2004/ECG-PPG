@@ -114,7 +114,7 @@ def midpoint_finder(peaks, valleys):
     # plt.show()
     return midpoints.astype(int)
 
-def peak_valley_finder_and_plot(data, time_, prominence, datatype, smoothed):
+def peak_valleys_PPG(data, time_, prominence, datatype, smoothed):
     """finds the peaks of a dataset and plots the data
 
     Args:
@@ -451,11 +451,11 @@ time_, samplecount, IR_Count, Red_Count, ecg_raw, ecg_raw_mv, ecg_filtered, ecg_
 smoothed_IR = smooth_data(IR_Count, 'IR')
 smoothed_Red = smooth_data(Red_Count, 'Red')
 
-peaks_ir, valleys_ir = peak_valley_finder_and_plot(IR_Count, time_, PROMINENCE_IR, "IR",False)
-peaks_red, valleys_red = peak_valley_finder_and_plot(Red_Count, time_, PROMINENCE_RED, "Red",False)
+peaks_ir, valleys_ir = peak_valleys_PPG(IR_Count, time_, PROMINENCE_IR, "IR",False)
+peaks_red, valleys_red = peak_valleys_PPG(Red_Count, time_, PROMINENCE_RED, "Red",False)
 
-peaks_ir_smoothed, valleys_ir_smoothed = peak_valley_finder_and_plot(smoothed_IR, time_, 500, "Smoothed IR", smoothed=True)
-peaks_red_smoothed, valleys_red_smoothed = peak_valley_finder_and_plot(smoothed_Red, time_, 200, "Smoothed Red", smoothed=True)
+peaks_ir_smoothed, valleys_ir_smoothed = peak_valleys_PPG(smoothed_IR, time_, 500, "Smoothed IR", smoothed=True)
+peaks_red_smoothed, valleys_red_smoothed = peak_valleys_PPG(smoothed_Red, time_, 200, "Smoothed Red", smoothed=True)
 
 midpoints_ir_smoothed = midpoint_finder(peaks_ir_smoothed, valleys_ir_smoothed)
 midpoints_red_smoothed = midpoint_finder(peaks_red_smoothed, valleys_red_smoothed)
