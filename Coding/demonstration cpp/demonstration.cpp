@@ -347,7 +347,7 @@ int main()
 
             
             time.push_back(convertStringToUnixTime(Time));
-            ir.push_back(std::stod(IR_Count));
+            ir.push_back(std::stof(IR_Count));
 
             std::cout << '\n';
         }
