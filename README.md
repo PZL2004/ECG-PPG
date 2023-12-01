@@ -85,4 +85,7 @@ References
 
 [3] P. Van Gent, “Welcome to HeartPy,” Python Heart Rate Analysis Toolkit, https://python-heart-rate-analysis-toolkit.readthedocs.io/en/latest/ (accessed Sep. 27, 2023).
 
+C++ Code uses this repo for peak detection:
+https://github.com/claydergc/find-peaks.git
+
 If any other references were missed here, they are referenced in the code or in files related to the code.
