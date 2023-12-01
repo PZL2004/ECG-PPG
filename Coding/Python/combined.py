@@ -204,38 +204,39 @@ def SpO2(red_count, ir_count, red_peak_loc, red_val_loc, ir_peak_loc, ir_val_loc
     
     return avg_red_peak, avg_red_val, avg_ir_peak, avg_ir_val, avg_R, avg_SpO2
 
-def BPM1(time_, peak_locations, valley_locations, compute_moving_average):
-    """calculates the BPM for both the peaks and the valleys of the data in question.
+def BPM1(time_, peak_positions, trough_positions, compute_moving_average):
+    """calculates the BPM for both the peaks and the troughs of the data in question.
 
     Args:
         time_ (ndarray): an array of time in seconds for each point in the data in question
-        peak_locations (list/list-like): a list of the peak locations (indices) for the data in question
-        valley_locations (list/list-like): a list of the peak locations (indices) for the data in question
+        peak_positions (list/list-like): a list of the peak indices for the data in question
+        trough_positions (list/list-like): a list of the trough indices for the data in question
+        compute_moving average (bool): whether or not to compute a moving average (0 or 1)
 
     Returns:
-        tuple: contains the average bpm for the peaks and valleys, as well as a moving average for both
+        tuple: contains the average bpm for the peaks and troughs, as well as a moving average for both if wanted
     """
-    peak_times = list(set(np.round(time_[peak_locations], 3)))
+    peak_times = list(set(np.round(time_[peak_positions], 3)))
 
-    valley_times = list(set(np.round(time_[valley_locations], 3)))
+    trough_times = list(set(np.round(time_[trough_positions], 3)))
 
     diffs_peaks = np.diff(peak_times)
-    diffs_valleys = np.diff(valley_times)
+    diffs_troughs = np.diff(trough_times)
 
     #average over the whole timeframe
     avg_bpm_peaks = 60/np.mean(diffs_peaks)
-    avg_bpm_valleys = 60/np.mean(diffs_valleys)
+    avg_bpm_troughs = 60/np.mean(diffs_troughs)
 
     #moving average every 5 heartbeats
     if compute_moving_average:
         try:
             bpms_peaks = [(60/np.mean(diffs_peaks[i:i+5])) for i in range(len(diffs_peaks) - 5)]
-            bpms_valleys = [(60/np.mean(diffs_valleys[i:i+5])) for i in range(len(diffs_valleys) - 5)]
+            bpms_troughs = [(60/np.mean(diffs_troughs[i:i+5])) for i in range(len(diffs_troughs) - 5)]
         except IndexError:
             sys.exit("Use more than 5 heartbeats for your data. Preferably way more!")
     
-        return avg_bpm_peaks, avg_bpm_valleys, bpms_peaks, bpms_valleys
-    return avg_bpm_peaks, avg_bpm_valleys
+        return avg_bpm_peaks, avg_bpm_troughs, bpms_peaks, bpms_troughs
+    return avg_bpm_peaks, avg_bpm_troughs
 
 def BPM2(time_, peak_positions, trough_positions, compute_moving_average):
     """calculates the BPM for the data points in which a single peak in in between
@@ -244,11 +245,12 @@ def BPM2(time_, peak_positions, trough_positions, compute_moving_average):
 
     Args:
         time_ (ndarray): an array of time in seconds for each point in the data in question
-        peak_locations (list/list-like): a list of the peak locations (indices) for the data in question
-        valley_locations (list/list-like): a list of the peak locations (indices) for the data in question
+        peak_positions (list/list-like): a list of the peak indices for the data in question
+        trough_positions (list/list-like): a list of the peak indices for the data in question
+        compute_moving average (bool): whether or not to compute a moving average (0 or 1)
 
     Returns:
-        tuple: contains the average bpm for the peaks and valleys, as well as a moving average for both
+        tuple: contains the average bpm for the peaks and trough, as well as a moving average for both if wanted
     """
     peak_positions = np.array(peak_positions)
     trough_positions = np.array(trough_positions)
@@ -284,23 +286,23 @@ def BPM2(time_, peak_positions, trough_positions, compute_moving_average):
     all_diffs_troughs = np.diff(all_trough_times)
     
     valid_diffs_peaks = np.delete(all_diffs_peaks, cut_indexes)
-    valid_diffs_valleys = np.delete(all_diffs_troughs, cut_indexes)
+    valid_diffs_troughs = np.delete(all_diffs_troughs, cut_indexes)
 
     #average over the whole timeframe
     avg_bpm_peaks = 60/np.mean(valid_diffs_peaks)
-    avg_bpm_valleys = 60/np.mean(valid_diffs_valleys)
+    avg_bpm_troughs = 60/np.mean(valid_diffs_troughs)
 
     #moving average every 5 heartbeats
     
     if compute_moving_average:
         try:
             bpms_peaks = [(60/np.mean(valid_diffs_peaks[i:i+5])) for i in range(len(valid_diffs_peaks) - 5)]
-            bpms_valleys = [(60/np.mean(valid_diffs_valleys[i:i+5])) for i in range(len(valid_diffs_valleys) - 5)]
+            bpms_troughs = [(60/np.mean(valid_diffs_troughs[i:i+5])) for i in range(len(valid_diffs_troughs) - 5)]
         except IndexError:
             sys.exit("Use more than 5 heartbeats for your data. Preferably way more!")
     
-        return avg_bpm_peaks, avg_bpm_valleys, bpms_peaks, bpms_valleys
-    return avg_bpm_peaks, avg_bpm_valleys
+        return avg_bpm_peaks, avg_bpm_troughs, bpms_peaks, bpms_troughs
+    return avg_bpm_peaks, avg_bpm_troughs
 
 def ecg_peak_removal(ecg_peak_loc, ecg_val_loc):
     """ Checks for indices where there are either 0 or >1 peaks in between valleys, then returns those indices in a list.
