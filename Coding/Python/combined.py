@@ -274,25 +274,28 @@ def BPM2(time_, peak_positions, trough_positions, compute_moving_average):
     
     # if no indices are cut. FOR REALLY CLEAN DATA!!!
     if len(cut_indexes) == 0:
+        # print("BPM2 same as BPM1") # diagnostic
         return BPM1(time_, peak_positions, trough_positions, compute_moving_average)
     
-    peak_times = list(set(np.round(time_[valid_peaks], 3)))
-
-    valley_times = list(set(np.round(time_[valid_troughs], 3)))
+    all_peak_times = np.unique(np.round(time_[peak_positions], 3))
+    all_trough_times = np.unique(np.round(time_[trough_positions], 3))
     
-    diffs_peaks = np.diff(peak_times)
-    diffs_valleys = np.diff(valley_times)
+    all_diffs_peaks = np.diff(all_peak_times)
+    all_diffs_troughs = np.diff(all_trough_times)
+    
+    valid_diffs_peaks = np.delete(all_diffs_peaks, cut_indexes)
+    valid_diffs_valleys = np.delete(all_diffs_troughs, cut_indexes)
 
     #average over the whole timeframe
-    avg_bpm_peaks = 60/np.mean(diffs_peaks)
-    avg_bpm_valleys = 60/np.mean(diffs_valleys)
+    avg_bpm_peaks = 60/np.mean(valid_diffs_peaks)
+    avg_bpm_valleys = 60/np.mean(valid_diffs_valleys)
 
     #moving average every 5 heartbeats
     
     if compute_moving_average:
         try:
-            bpms_peaks = [(60/np.mean(diffs_peaks[i:i+5])) for i in range(len(diffs_peaks) - 5)]
-            bpms_valleys = [(60/np.mean(diffs_valleys[i:i+5])) for i in range(len(diffs_valleys) - 5)]
+            bpms_peaks = [(60/np.mean(valid_diffs_peaks[i:i+5])) for i in range(len(valid_diffs_peaks) - 5)]
+            bpms_valleys = [(60/np.mean(valid_diffs_valleys[i:i+5])) for i in range(len(valid_diffs_valleys) - 5)]
         except IndexError:
             sys.exit("Use more than 5 heartbeats for your data. Preferably way more!")
     
