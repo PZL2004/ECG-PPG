@@ -214,7 +214,7 @@ def BPM1(time_, peak_positions, trough_positions, compute_moving_average):
         compute_moving average (bool): whether or not to compute a moving average (0 or 1)
 
     Returns:
-        tuple: contains the average bpm for the peaks and troughs, as well as a moving average for both if wanted
+        tuple: contains the average bpm for the peaks and troughs, as well as a moving average for both if wanted.
     """
     peak_times = list(set(np.round(time_[peak_positions], 3)))
 
@@ -250,7 +250,7 @@ def BPM2(time_, peak_positions, trough_positions, compute_moving_average):
         compute_moving average (bool): whether or not to compute a moving average (0 or 1)
 
     Returns:
-        tuple: contains the average bpm for the peaks and trough, as well as a moving average for both if wanted
+        tuple: contains the average bpm for the peaks and trough, as well as a moving average for both if wanted.
     """
     peak_positions = np.array(peak_positions)
     trough_positions = np.array(trough_positions)
