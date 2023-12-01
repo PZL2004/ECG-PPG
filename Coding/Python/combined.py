@@ -408,11 +408,11 @@ def pulse_transit_time(ecg_peak_loc,midpoints_ir_smoothed):
     while len(ecg_peak_loc) > len(midpoints_ir_smoothed):
         ecg_peak_loc = np.delete(ecg_peak_loc,0)
 
-    # PLOT OF MIDPOINT VS ECG PEAK LOCATIONS IN SECONDS
-    plt.plot(time_[ecg_peak_loc],np.ones(len(time_[ecg_peak_loc])),'o',label='ecg (first)')
-    plt.plot(time_[midpoints_ir_smoothed],np.ones(len(time_[midpoints_ir_smoothed])),'o',label='ir mp (second)')
-    plt.legend()
-    plt.show()
+    # PLOT OF MIDPOINT VS ECG PEAK LOCATIONS IN SECONDS - DIAGNOSTIC
+    # plt.plot(time_[ecg_peak_loc],np.ones(len(time_[ecg_peak_loc])),'o',label='ecg (first)')
+    # plt.plot(time_[midpoints_ir_smoothed],np.ones(len(time_[midpoints_ir_smoothed])),'o',label='ir mp (second)')
+    # plt.legend()
+    # plt.show()
 
     lcd = min(len(time_[midpoints_ir_smoothed]), len(time_[ecg_peak_loc]))
     if time_[ecg_peak_loc][0] < time_[midpoints_ir_smoothed][0]:
@@ -431,10 +431,11 @@ def signaltonoise(a, axis=0, ddof=0):
 ##### MAIN PROGRAM #####
 
 #df = pd.read_csv("/home/pablo/projects/ECG-PPG/Coding/data/ECPPG_2023-11-10_13-32-13.csv") # Pablo - Linux
-# df = pd.read_csv("C:\\Users\pazul\Documents\BMEN 207\Honors Project\ECG-PPG\Coding\data\ECPPG_2023-11-10_13-32-13.csv") # Pablo - Windows
+df = pd.read_csv("C:\\Users\pazul\Documents\BMEN 207\Honors Project\ECG-PPG\Coding\data\ECPPG_2023-11-10_13-32-13.csv") # Pablo - Windows
 # df = pd.read_csv("C:\data\honors project ppg data\ECPPG_2023-11-10_13-32-13.csv") # Karston
 # df = pd.read_csv("C:\data\honors project ppg data\ECPPG_2023-11-30_17-54-16.csv") # Karston
-df = pd.read_csv("C:\data\honors project ppg data\ECPPG_2023-11-30_18-13-24.csv") # Karston
+# df = pd.read_csv("C:\data\honors project ppg data\ECPPG_2023-11-30_18-13-24.csv") # Karston
+# df = pd.read_csv("C:\\Users\pazul\Documents\BMEN 207\Honors Project\ECG-PPG\Coding\data\ECPPG_2023-11-30_18-13-24.csv") # Pablo - Windows
 # df = pd.read_csv("C:\data\honors project ppg data\ECPPG_2023-11-30_18-10-45.csv") # Karston
 
 time_, samplecount, IR_Count, Red_Count, ecg_raw, ecg_raw_mv, ecg_filtered, ecg_filtered_mv = read_file(df,100)
@@ -583,4 +584,4 @@ print(f'Signal to noise ratio for ECG Signal: {FOM_ecg_filtered:.2f}')
 
 # end of computation
 end = time.time()
-print(f"Compute Time: {end-start} seconds")
+print(f"Compute Time: {end-start} seconds") #includes time spent on plots if run in VS Code
