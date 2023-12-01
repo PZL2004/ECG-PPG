@@ -272,6 +272,10 @@ def BPM2(time_, peak_positions, trough_positions, compute_moving_average):
     valid_troughs = np.array(sorted(list(set(valid_troughs))))
     cut_indexes = np.array(cut_indexes)
     
+    # if no indices are cut. FOR REALLY CLEAN DATA!!!
+    if len(cut_indexes) == 0:
+        return BPM1(time_, peak_positions, trough_positions, compute_moving_average)
+    
     peak_times = list(set(np.round(time_[valid_peaks], 3)))
 
     valley_times = list(set(np.round(time_[valid_troughs], 3)))
@@ -584,4 +588,4 @@ print(f'Signal to noise ratio for ECG Signal: {FOM_ecg_filtered:.2f}')
 
 # end of computation
 end = time.time()
-print(f"Compute Time: {end-start} seconds") #includes time spent on plots if run in VS Code
+print(f"Compute Time: {end-start} seconds") #includes time spent on plots if used in VS Code
