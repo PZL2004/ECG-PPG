@@ -665,6 +665,8 @@ if FOM_ecg_filtered <= 6 or FOM_ecg_filtered >= 24: #ECG ONLY SINCE I HAVEN'T FO
 print(f'Signal to noise ratio for IR Signal: {FOM_ppg_ir:.2f}')
 print(f'Signal to noise ratio for Red Signal: {FOM_ppg_red:.2f}')
 print(f'Signal to noise ratio for ECG Signal: {FOM_ecg_filtered:.2f}')
+if 5 > FOM_ecg_filtered or FOM_ecg_filtered > 18:
+    print("Not good data!")
 
 # end of computation
 end = time.time()
