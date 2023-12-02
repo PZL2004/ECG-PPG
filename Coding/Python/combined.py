@@ -41,7 +41,7 @@ c = 100 # goofy values from Maxim
 #DIAG
 compute_moving_average = 0
 plot = 0
-important_plot = 1
+important_plot = 0
 
 ##### FUNCTIONS #####
 
@@ -472,27 +472,40 @@ def pulse_transit_time(ecg_peak_loc,midpoints_ir_smoothed):
     Returns:
         float: calculated pulse transit time
     """
-    for i in reversed(range(0,len(midpoints_ir_smoothed))):
+
+    offset = 0
+    for i in reversed(range(1,len(midpoints_ir_smoothed))):
         distance = len(midpoints_ir_smoothed) - i
-        if midpoints_ir_smoothed[i-1] > ecg_peak_loc[len(ecg_peak_loc)-distance]:
+        # print(f'checking index {i-1} at {midpoints_ir_smoothed[i-1]} > {ecg_peak_loc[len(ecg_peak_loc)-distance+offset]}')
+        if midpoints_ir_smoothed[i-1] > ecg_peak_loc[len(ecg_peak_loc)-distance+offset]:
+            # print(f'index {i} delete')
             midpoints_ir_smoothed = np.delete(midpoints_ir_smoothed,i)
+            offset = -1
+            
+    for i in reversed(range(1,len(ecg_peak_loc))):
+        distance = len(ecg_peak_loc) - i
+        # print(f'checking index {i-1} at {ecg_peak_loc[i-1]} > {midpoints_ir_smoothed[len(midpoints_ir_smoothed)-distance+offset]}')
+        if ecg_peak_loc[i-1] > midpoints_ir_smoothed[len(midpoints_ir_smoothed)-distance+offset]:
+            # print(f'index {i} delete')
+            ecg_peak_loc = np.delete(ecg_peak_loc,i)
+            offset = -1
+            
+    for i in reversed(range(1,len(midpoints_ir_smoothed))):
+        distance = len(midpoints_ir_smoothed) - i
+        # print(f'checking index {i-1} at {midpoints_ir_smoothed[i-1]} > {ecg_peak_loc[len(ecg_peak_loc)-distance+offset]}')
+        if midpoints_ir_smoothed[i-1] > ecg_peak_loc[len(ecg_peak_loc)-distance+offset]:
+            # print(f'index {i} delete')
+            midpoints_ir_smoothed = np.delete(midpoints_ir_smoothed,i)
+            offset = -1
+
+
     while len(ecg_peak_loc) > len(midpoints_ir_smoothed):
         ecg_peak_loc = np.delete(ecg_peak_loc,0)
     while len(midpoints_ir_smoothed) > len(ecg_peak_loc):
         midpoints_ir_smoothed = np.delete(midpoints_ir_smoothed,0)
 
-    # PLOT OF MIDPOINT VS ECG PEAK LOCATIONS IN SECONDS - DIAGNOSTIC
-    plt.plot(time_[ecg_peak_loc],np.ones(len(time_[ecg_peak_loc])),'o',label='ecg (first)')
-    plt.plot(time_[midpoints_ir_smoothed],np.ones(len(time_[midpoints_ir_smoothed])),'o',label='ir mp (second)')
-    plt.legend()
-    plt.show()
+    ptt = np.abs(time_[midpoints_ir_smoothed] - time_[ecg_peak_loc])
 
-    lcd = min(len(time_[midpoints_ir_smoothed]), len(time_[ecg_peak_loc]))
-    if time_[ecg_peak_loc][0] < time_[midpoints_ir_smoothed][0]:
-        ptt = time_[midpoints_ir_smoothed][:lcd] - time_[ecg_peak_loc][:lcd+1]
-    else:
-        ptt = time_[midpoints_ir_smoothed[1:lcd]] - time_[ecg_peak_loc[:lcd-1]]
-    # ptt_s = ptt/samplerate #convert to seconds
     return ptt
 
 def signaltonoise(a, axis=0, ddof=0):
@@ -517,13 +530,13 @@ def signaltonoise(a, axis=0, ddof=0):
 # df = pd.read_csv("C:\\Users\pazul\Documents\BMEN 207\Honors Project\ECG-PPG\Coding\data\ECPPG_2023-11-10_13-32-13.csv") # Pablo - Windows
 # df = pd.read_csv("C:\data\honors project ppg data\ECPPG_2023-11-10_13-32-13.csv") # Karston
 # df = pd.read_csv("C:\data\honors project ppg data\ECPPG_2023-11-30_17-54-16.csv") # Karston
-df = pd.read_csv("C:\data\honors project ppg data\ECPPG_2023-11-30_18-13-24.csv") # Karston
+# df = pd.read_csv("C:\data\honors project ppg data\ECPPG_2023-11-30_18-13-24.csv") # Karston
 # df = pd.read_csv("C:\\Users\pazul\Documents\BMEN 207\Honors Project\ECG-PPG\Coding\data\ECPPG_2023-11-30_18-13-24.csv") # Pablo - Windows
 # df = pd.read_csv("C:\data\honors project ppg data\ECPPG_2023-11-30_18-10-45.csv") # Karston
-# df = pd.read_csv("C:\\Users\pazul\Documents\BMEN 207\Honors Project\ECG-PPG\Coding\data\ECPPG_2023-11-30_18-10-45.csv") # Pablo - Windows
+df = pd.read_csv("C:\\Users\pazul\Documents\BMEN 207\Honors Project\ECG-PPG\Coding\data\ECPPG_2023-11-30_18-10-45.csv") # Pablo - Windows
 # df = pd.read_csv("C:\\Users\pazul\Documents\BMEN 207\Honors Project\ECG-PPG\Coding\data\ECPPG_2023-11-08_16-33-32.csv")
 
-time_, samplecount, IR_Count, Red_Count, ecg_raw, ecg_raw_mv, ecg_filtered, ecg_filtered_mv = read_file(df,2500)
+time_, samplecount, IR_Count, Red_Count, ecg_raw, ecg_raw_mv, ecg_filtered, ecg_filtered_mv = read_file(df,100)
 smoothed_IR = smooth_data(IR_Count, 'IR')
 smoothed_Red = smooth_data(Red_Count, 'Red')
 
@@ -643,17 +656,17 @@ print(f'Average BPM from ECG and IR: {bpm_mean:.2f}')
 ### SpO2 ###
 avg_red_peak, avg_red_val, avg_ir_peak, avg_ir_val, avg_R, avg_SpO2 = SpO2(Red_Count, IR_Count, peaks_red, valleys_red, peaks_ir, valleys_ir)
 print("\n------- SpO2 -------")
-print(f"Average Peak Value for Red Channel: {avg_red_peak:.2f} [counts]")
-print(f"Average Peak Value for IR Channel: {avg_ir_peak:.2f} [counts]")
-print(f"Average Trough Value for Red Channel: {avg_red_val:.2f} [counts]")
-print(f"Average Trough Value for IR Channel: {avg_ir_val:.2f} [counts]")
+# print(f"Average Peak Value for Red Channel: {avg_red_peak:.2f} [counts]")
+# print(f"Average Peak Value for IR Channel: {avg_ir_peak:.2f} [counts]")
+# print(f"Average Trough Value for Red Channel: {avg_red_val:.2f} [counts]")
+# print(f"Average Trough Value for IR Channel: {avg_ir_val:.2f} [counts]")
 print(f"Average Ratio of Ratios: {avg_R:.2f}")
 print(f"Average SpO2: {avg_SpO2:.2f}%") # probably >100% for us because we are young, older people would get a normal SpO2 percentage
 
 ### PULSE TRANSIT TIME ### 
 print("\n------- Pulse Transit Time -------")
-if avg_ptt > 0.3:
-    print("Bad Data!")
+if avg_ptt > 0.5:
+    print("Probably bad data! Unless patient is very old!")
 print(f'Average Pulse Transit Time: {avg_ptt:.3f} seconds')
 
 ### FIGURES OF MERIT ### 
@@ -662,14 +675,12 @@ FOM_ppg_ir = signaltonoise(IR_Count, axis = 0, ddof = 0)
 FOM_ppg_red = signaltonoise(Red_Count, axis = 0, ddof = 0)
 
 print("\n------- Figures of Merit -------")
-if FOM_ecg_filtered <= 6 or FOM_ecg_filtered >= 24: #ECG ONLY SINCE I HAVEN'T FOUND GOOD VALUES FOR PPG
-    print(f'Bad reading! Values may not be accurate. By taking another reading and staying still, values may be more accurate.')
 print(f'Signal to noise ratio for IR Signal: {FOM_ppg_ir:.2f}')
 print(f'Signal to noise ratio for Red Signal: {FOM_ppg_red:.2f}')
 print(f'Signal to noise ratio for ECG Signal: {FOM_ecg_filtered:.2f}')
 if 5 > FOM_ecg_filtered or FOM_ecg_filtered > 18:
-    print("Not good data!")
+    print("Bad reading! Values may not be accurate. By taking another reading and staying still, values may be more accurate.")
 
 # end of computation
 end = time.time()
-print(f"\nCompute Time: {end-start} seconds") #includes time spent on plots if used in VS Code
+print(f"\nCompute Time: {end-start:.4f} seconds") #includes time spent on plots if used in VS Code
