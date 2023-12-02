@@ -4,7 +4,6 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from scipy.signal import find_peaks
 import sys
-from datetime import datetime
 import time
 # Automatic Gain Control=Checked,IR PA (mA)=10,Red PA (mA)=10,IR LED Range (mA)=51,Red LED Range (mA)=51,ALC + FDM=Checked,
 # Sample Rate (Hz)=100,Pulse Width (usec)=400,ADC Range (nA)=32768,FIFO Rolls on Full=Checked,FIFO Almost Full=17,Sample 
@@ -15,17 +14,22 @@ start = time.time()
 
 ##### INITIAL PARAMETERS #####
 ### Peak Finding ###
-MIN_WIDTH = 30
+MIN_WIDTH = 20
 MAX_WIDTH = 500
 MIN_WIDTH_ECG_VAL = 0
 MAX_WIDTH_ECG_VAL = 25
 MIN_WIDTH_ECG_PEAK = 0
 MAX_WIDTH_ECG_PEAK = 50
-PROMINENCE_IR = 850
-PROMINENCE_RED = 350
+PROMINENCE_IR_PEAK = 500
+PROMINENCE_RED_PEAK = 350
+PROMINENCE_IR_VAL = 500
+PROMINENCE_RED_VAL = 250
+PROMINENCE_IR_SMOOTHED = 500
+PROMINENCE_RED_SMOOTHED = 200
 PROMINENCE_ECG = 800
 SAMPLERATE_PPG = 100
 SAMPLERATE_ECG = 200
+THRESHOLD_SMOOTHED = 0
 HEIGHT = None
 THRESHOLD = None
 
@@ -42,11 +46,28 @@ important_plot = 1
 ##### FUNCTIONS #####
 
 def convert_to_sec(t):
+    """converts the datetime format to seconds using numpy
+
+    Args:
+        t (array): array of datetime format
+
+    Returns:
+        array: time points in seconds since start
+    """
     timelist_ms = np.array(t - t[0], dtype=float)
     timelist_s = timelist_ms/1000
     return timelist_s
 
 def read_file(df,drop):
+    """reads in the df and outputs numpy arrays
+
+    Args:
+        df (DataFrame): dataframe from csv file
+        drop (int): amount of rows to be dropped at start
+
+    Returns:
+        tuple: arrays of valuable data
+    """
     time_ = convert_to_sec(np.array(df['Time'][drop:], dtype='datetime64'))
     samplecount = np.array(df[' Sample Count'][drop:])
     ir_count = np.array(df[' IR Count'][drop:])
@@ -92,6 +113,15 @@ def smooth_data(signal, analysis_type):
     return filtered
 
 def midpoint_finder(peaks, valleys):
+    """finds the midpoints of a PPG peak
+
+    Args:
+        peaks (array): array of peak indices
+        valleys (array): array of valley indices
+
+    Returns:
+        array: array of indices of midpoints
+    """
     lcd = min([len(peaks),len(valleys)])
 
     if valleys[0] < peaks[0]: #if it starts with a valley
@@ -114,21 +144,30 @@ def midpoint_finder(peaks, valleys):
     # plt.show()
     return midpoints.astype(int)
 
-def peak_valleys_PPG(data, time_, prominence, datatype, smoothed):
+def peak_valleys_PPG(data, time_, datatype, smoothed):
     """finds the peaks of a dataset and plots the data
 
     Args:
         data (list/list-like): the y-axis values of the dataset
         time_ (list/list-like): the x-axis time values of the dataset (should be same shape as data) 
-        prominence (integer): the prominence required to return as a peak or valley in the data
         datatype (string): what dataset is being used
         smoothed (bool): if smoothed signal or not
 
     Returns:
         list: list containing the indexes of all of the peaks in the dataset (no minimum peaks, just maxes)
     """
-    peaks = find_peaks(data, height=HEIGHT, threshold=THRESHOLD, prominence=prominence, width=(MIN_WIDTH, MAX_WIDTH))[0]
-    valleys = find_peaks(-data, height=HEIGHT, threshold=THRESHOLD, prominence=prominence, width=(MIN_WIDTH, MAX_WIDTH))[0]
+    if datatype == 'IR':
+        peaks = find_peaks(data, height=HEIGHT, threshold=THRESHOLD, prominence=PROMINENCE_IR_PEAK, width=(MIN_WIDTH, MAX_WIDTH))[0]
+        valleys = find_peaks(-data, height=HEIGHT, threshold=THRESHOLD, prominence=PROMINENCE_IR_VAL, width=(MIN_WIDTH, MAX_WIDTH))[0]
+    elif datatype == "Red":
+        peaks = find_peaks(data, height=HEIGHT, threshold=THRESHOLD, prominence=PROMINENCE_RED_PEAK, width=(MIN_WIDTH, MAX_WIDTH))[0]
+        valleys = find_peaks(-data, height=HEIGHT, threshold=THRESHOLD, prominence=PROMINENCE_RED_VAL, width=(MIN_WIDTH, MAX_WIDTH))[0]
+    elif datatype == "Smoothed IR":
+        peaks = find_peaks(data, height=HEIGHT, threshold=THRESHOLD_SMOOTHED, prominence=PROMINENCE_IR_SMOOTHED, width=(MIN_WIDTH, MAX_WIDTH))[0]
+        valleys = find_peaks(-data, height=HEIGHT, threshold=THRESHOLD_SMOOTHED, prominence=PROMINENCE_IR_SMOOTHED, width=(MIN_WIDTH, MAX_WIDTH))[0]
+    elif datatype == "Smoothed Red":
+        peaks = find_peaks(data, height=HEIGHT, threshold=THRESHOLD_SMOOTHED, prominence=PROMINENCE_RED_SMOOTHED, width=(MIN_WIDTH, MAX_WIDTH))[0]
+        valleys = find_peaks(-data, height=HEIGHT, threshold=THRESHOLD_SMOOTHED, prominence=PROMINENCE_RED_SMOOTHED, width=(MIN_WIDTH, MAX_WIDTH))[0]
     
     # fixes edge case where max of a peak/valley is found twice in same peak.
     usedValues_peaks = set()
@@ -290,7 +329,7 @@ def BPM2(time_, peak_positions, trough_positions, compute_moving_average):
         valid_diffs_peaks = np.delete(all_diffs_peaks, cut_indexes)
         valid_diffs_troughs = np.delete(all_diffs_troughs, cut_indexes)
     except:
-        for i in range(len(cut_indexes)):
+        for i in reversed(range(len(cut_indexes))):
             if cut_indexes[i] not in range(len(all_diffs_peaks)) or cut_indexes[i] not in range(len(all_diffs_troughs)):
                 cut_indexes = np.delete(cut_indexes, i)
         
@@ -392,6 +431,16 @@ def ecg_peak_finder(ecgdata, time_):
     return ecg_peak_loc, ecg_val_loc
 
 def ecg_heartrate(ecg_peak_loc,ecg_val_loc,SAMPLERATE_ECG):
+    """finds the heart rate from an ECG signal
+
+    Args:
+        ecg_peak_loc (array): peak locations of ECG
+        ecg_val_loc (array): valley locations of ECG
+        SAMPLERATE_ECG (int): sample rate of ECG in Hz
+
+    Returns:
+        tuple: ECG heart rate and other important info
+    """
     #calculate IR bpm and stdev
     ecg_diffs = np.diff(ecg_val_loc)
     ecg_timediff = ecg_diffs/SAMPLERATE_ECG
@@ -414,13 +463,16 @@ def ecg_heartrate(ecg_peak_loc,ecg_val_loc,SAMPLERATE_ECG):
     return ecg_avg_bpm_2, ecg_stdev_bpm_2, ecg_avg_bpm, ecg_stdev_bpm, ecg_diffs
 
 def pulse_transit_time(ecg_peak_loc,midpoints_ir_smoothed):
-    bad_mp_index = []
-    if midpoints_ir_smoothed[-1] > ecg_peak_loc[-1]:
-        offset = 1
-    else:
-        offset = 0
+    """Finds the pulse transit time
 
-    for i in reversed(range(len(midpoints_ir_smoothed))):
+    Args:
+        ecg_peak_loc (array): array of ECG peak indices
+        midpoints_ir_smoothed (array): array of IR count peak midpoints
+
+    Returns:
+        float: calculated pulse transit time
+    """
+    for i in reversed(range(0,len(midpoints_ir_smoothed))):
         distance = len(midpoints_ir_smoothed) - i
         if midpoints_ir_smoothed[i-1] > ecg_peak_loc[len(ecg_peak_loc)-distance]:
             midpoints_ir_smoothed = np.delete(midpoints_ir_smoothed,i)
@@ -442,6 +494,16 @@ def pulse_transit_time(ecg_peak_loc,midpoints_ir_smoothed):
     return ptt
 
 def signaltonoise(a, axis=0, ddof=0):
+    """calculates the signal to noise ratio
+
+    Args:
+        a (array): signal
+        axis (int, optional): what axis. Defaults to 0.
+        ddof (int, optional): delta degrees of freedom. Defaults to 0.
+
+    Returns:
+        float: signal to noise ratio
+    """
     a = np.asanyarray(a)
     m = a.mean(axis)
     sd = a.std(axis=axis, ddof=ddof)
@@ -456,17 +518,18 @@ df = pd.read_csv("C:\\Users\pazul\Documents\BMEN 207\Honors Project\ECG-PPG\Codi
 # df = pd.read_csv("C:\data\honors project ppg data\ECPPG_2023-11-30_18-13-24.csv") # Karston
 # df = pd.read_csv("C:\\Users\pazul\Documents\BMEN 207\Honors Project\ECG-PPG\Coding\data\ECPPG_2023-11-30_18-13-24.csv") # Pablo - Windows
 # df = pd.read_csv("C:\data\honors project ppg data\ECPPG_2023-11-30_18-10-45.csv") # Karston
-# df = pd.read_csv("C:\\Users\pazul\Documents\BMEN 207\Honors Project\ECG-PPG\Coding\data\ECPPG_2023-11-30_18-10-45.csv")
+# df = pd.read_csv("C:\\Users\pazul\Documents\BMEN 207\Honors Project\ECG-PPG\Coding\data\ECPPG_2023-11-30_18-10-45.csv") # Pablo - Windows
+# df = pd.read_csv("C:\\Users\pazul\Documents\BMEN 207\Honors Project\ECG-PPG\Coding\data\ECPPG_2023-11-08_16-33-32.csv")
 
 time_, samplecount, IR_Count, Red_Count, ecg_raw, ecg_raw_mv, ecg_filtered, ecg_filtered_mv = read_file(df,100)
 smoothed_IR = smooth_data(IR_Count, 'IR')
 smoothed_Red = smooth_data(Red_Count, 'Red')
 
-peaks_ir, valleys_ir = peak_valleys_PPG(IR_Count, time_, PROMINENCE_IR, "IR",False)
-peaks_red, valleys_red = peak_valleys_PPG(Red_Count, time_, PROMINENCE_RED, "Red",False)
+peaks_ir, valleys_ir = peak_valleys_PPG(IR_Count, time_, "IR",False)
+peaks_red, valleys_red = peak_valleys_PPG(Red_Count, time_, "Red",False)
 
-peaks_ir_smoothed, valleys_ir_smoothed = peak_valleys_PPG(smoothed_IR, time_, 500, "Smoothed IR", smoothed=True)
-peaks_red_smoothed, valleys_red_smoothed = peak_valleys_PPG(smoothed_Red, time_, 200, "Smoothed Red", smoothed=True)
+peaks_ir_smoothed, valleys_ir_smoothed = peak_valleys_PPG(smoothed_IR, time_, "Smoothed IR", smoothed=True)
+peaks_red_smoothed, valleys_red_smoothed = peak_valleys_PPG(smoothed_Red, time_, "Smoothed Red", smoothed=True)
 
 midpoints_ir_smoothed = midpoint_finder(peaks_ir_smoothed, valleys_ir_smoothed)
 midpoints_red_smoothed = midpoint_finder(peaks_red_smoothed, valleys_red_smoothed)
@@ -587,8 +650,9 @@ print(f"Average SpO2: {avg_SpO2:.2f}%") # probably >100% for us because we are y
 
 ### PULSE TRANSIT TIME ### 
 print("\n------- Pulse Transit Time -------")
+print("If data is not really good ignore this value! Probably off!")
 # print(f'Full: {ptt_array}')
-print(f'Average Pulse Transit Time: {avg_ptt:.2f} seconds')
+print(f'Average Pulse Transit Time: {avg_ptt:.3f} seconds')
 
 ### FIGURES OF MERIT ### 
 FOM_ecg_filtered = signaltonoise(ecg_filtered, axis = 0, ddof = 0)
