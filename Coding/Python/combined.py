@@ -285,8 +285,18 @@ def BPM2(time_, peak_positions, trough_positions, compute_moving_average):
     all_diffs_peaks = np.diff(all_peak_times)
     all_diffs_troughs = np.diff(all_trough_times)
     
-    valid_diffs_peaks = np.delete(all_diffs_peaks, cut_indexes)
-    valid_diffs_troughs = np.delete(all_diffs_troughs, cut_indexes)
+    # if value in cut_indexes is not a possible index in all_diffs, then delete them
+    try:
+        valid_diffs_peaks = np.delete(all_diffs_peaks, cut_indexes)
+        valid_diffs_troughs = np.delete(all_diffs_troughs, cut_indexes)
+    except:
+        for i in range(len(cut_indexes)):
+            if cut_indexes[i] not in range(len(all_diffs_peaks)) or cut_indexes[i] not in range(len(all_diffs_troughs)):
+                cut_indexes = np.delete(cut_indexes, i)
+        
+        valid_diffs_peaks = np.delete(all_diffs_peaks, cut_indexes)
+        valid_diffs_troughs = np.delete(all_diffs_troughs, cut_indexes)
+
 
     #average over the whole timeframe
     avg_bpm_peaks = 60/np.mean(valid_diffs_peaks)
@@ -439,13 +449,14 @@ def signaltonoise(a, axis=0, ddof=0):
 
 ##### MAIN PROGRAM #####
 
-#df = pd.read_csv("/home/pablo/projects/ECG-PPG/Coding/data/ECPPG_2023-11-10_13-32-13.csv") # Pablo - Linux
+# df = pd.read_csv("/home/pablo/projects/ECG-PPG/Coding/data/ECPPG_2023-11-10_13-32-13.csv") # Pablo - Linux
 df = pd.read_csv("C:\\Users\pazul\Documents\BMEN 207\Honors Project\ECG-PPG\Coding\data\ECPPG_2023-11-10_13-32-13.csv") # Pablo - Windows
 # df = pd.read_csv("C:\data\honors project ppg data\ECPPG_2023-11-10_13-32-13.csv") # Karston
 # df = pd.read_csv("C:\data\honors project ppg data\ECPPG_2023-11-30_17-54-16.csv") # Karston
 # df = pd.read_csv("C:\data\honors project ppg data\ECPPG_2023-11-30_18-13-24.csv") # Karston
 # df = pd.read_csv("C:\\Users\pazul\Documents\BMEN 207\Honors Project\ECG-PPG\Coding\data\ECPPG_2023-11-30_18-13-24.csv") # Pablo - Windows
 # df = pd.read_csv("C:\data\honors project ppg data\ECPPG_2023-11-30_18-10-45.csv") # Karston
+# df = pd.read_csv("C:\\Users\pazul\Documents\BMEN 207\Honors Project\ECG-PPG\Coding\data\ECPPG_2023-11-30_18-10-45.csv")
 
 time_, samplecount, IR_Count, Red_Count, ecg_raw, ecg_raw_mv, ecg_filtered, ecg_filtered_mv = read_file(df,100)
 smoothed_IR = smooth_data(IR_Count, 'IR')
