@@ -670,4 +670,4 @@ if 5 > FOM_ecg_filtered or FOM_ecg_filtered > 18:
 
 # end of computation
 end = time.time()
-print(f"Compute Time: {end-start} seconds") #includes time spent on plots if used in VS Code
+print(f"\nCompute Time: {end-start} seconds") #includes time spent on plots if used in VS Code
