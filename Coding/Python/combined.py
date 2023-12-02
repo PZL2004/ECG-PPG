@@ -650,7 +650,7 @@ print(f"Average SpO2: {avg_SpO2:.2f}%") # probably >100% for us because we are y
 
 ### PULSE TRANSIT TIME ### 
 print("\n------- Pulse Transit Time -------")
-print("If data is not really good ignore this value! Probably off!")
+print("If the value is less than 0.1 seconds, its good. Else bad data.")
 # print(f'Full: {ptt_array}')
 print(f'Average Pulse Transit Time: {avg_ptt:.3f} seconds')
 
